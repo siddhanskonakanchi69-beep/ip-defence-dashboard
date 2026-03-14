@@ -25,6 +25,8 @@ from functools import wraps
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(16)
 DATABASE = "database.db"
+API_KEY = os.environ.get("DASHBOARD_API_KEY", "changeme-key")
+AUTO_UNBLOCK_MINUTES = int(os.environ.get("AUTO_UNBLOCK_MINUTES", 60))
 IP_LOG_FILE = "ip_logs.csv"  # Persistent IP data for ML models
 
 # ────────────────────────────────────────────────────────────────────────────────
@@ -81,7 +83,8 @@ def init_db() -> None:
             ip_address TEXT UNIQUE NOT NULL,
             reason TEXT,
             blocked_at TEXT,
-            severity TEXT DEFAULT 'high'
+            severity TEXT DEFAULT 'high',
+            duration_minutes INTEGER DEFAULT 60
         )
     """)
     
@@ -245,7 +248,9 @@ def login_required(f):
 
 @app.before_request
 def check_blocked_ip():
-    """Check if incoming IP is blocked."""
+    """Check if incoming IP is blocked (skip for agent API routes)."""
+    if request.path.startswith('/api/'):
+        return  # Agent API endpoints handle their own auth
     client_ip = get_client_ip()
     if is_ip_blocked(client_ip):
         security_log(client_ip, "blocked_access", "Blocked IP attempted access", "critical")
@@ -529,6 +534,128 @@ def ip_logs_preview():
     })
 
 
+# ────────────────────────────────────────────────────────────────────────────────
+# AUTH DECORATOR — API Key
+# ────────────────────────────────────────────────────────────────────────────────
+
+def api_key_required(f):
+    """Decorator requiring a valid X-API-Key header."""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        key = request.headers.get('X-API-Key', '')
+        if key != API_KEY:
+            return jsonify({"error": "Invalid or missing API key"}), 401
+        return f(*args, **kwargs)
+    return decorated
+
+
+# ────────────────────────────────────────────────────────────────────────────────
+# ROUTES — Agent API (API-key auth, no session needed)
+# ────────────────────────────────────────────────────────────────────────────────
+
+@app.route('/api/block_ip', methods=['POST'])
+@api_key_required
+def api_block_ip():
+    """Block an IP via JSON payload from agents."""
+    data = request.get_json(force=True, silent=True) or {}
+    ip = data.get('ip', '').strip()
+    reason = data.get('reason', 'Automated block')
+    duration = data.get('duration_minutes', AUTO_UNBLOCK_MINUTES)
+
+    if not ip:
+        return jsonify({"error": "Missing 'ip' field"}), 400
+
+    try:
+        conn = get_db_connection()
+        c = conn.cursor()
+        c.execute("""
+            INSERT INTO blocked_ips (ip_address, reason, blocked_at, severity, duration_minutes)
+            VALUES (?, ?, ?, ?, ?)
+        """, (ip, reason, datetime.now().isoformat(), "high", duration))
+        conn.commit()
+        conn.close()
+        security_log(ip, "ip_blocked", f"API block: {reason}", "critical")
+        return jsonify({"success": True, "message": f"Blocked {ip}"}), 200
+    except sqlite3.IntegrityError:
+        return jsonify({"success": True, "message": f"{ip} already blocked"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/unblock_ip', methods=['POST'])
+@api_key_required
+def api_unblock_ip():
+    """Unblock an IP via JSON payload from agents."""
+    data = request.get_json(force=True, silent=True) or {}
+    ip = data.get('ip', '').strip()
+
+    if not ip:
+        return jsonify({"error": "Missing 'ip' field"}), 400
+
+    conn = get_db_connection()
+    c = conn.cursor()
+    c.execute("DELETE FROM blocked_ips WHERE ip_address = ?", (ip,))
+    conn.commit()
+    conn.close()
+    security_log(ip, "ip_unblocked", f"API unblock: {ip}", "info")
+    return jsonify({"success": True, "message": f"Unblocked {ip}"}), 200
+
+
+@app.route('/api/blocked_ips', methods=['GET'])
+@api_key_required
+def api_blocked_ips():
+    """Return list of currently blocked IPs."""
+    conn = get_db_connection()
+    c = conn.cursor()
+    c.execute("SELECT ip_address, reason, blocked_at, severity, duration_minutes FROM blocked_ips")
+    rows = c.fetchall()
+    conn.close()
+    return jsonify([dict(r) for r in rows]), 200
+
+
+# ────────────────────────────────────────────────────────────────────────────────
+# AUTO-UNBLOCK SCHEDULER
+# ────────────────────────────────────────────────────────────────────────────────
+
+def _auto_unblock_loop():
+    """Background thread: remove blocked IPs whose duration has expired."""
+    import time as _time
+    while True:
+        try:
+            conn = sqlite3.connect(DATABASE)
+            c = conn.cursor()
+            c.execute("""
+                SELECT ip_address, blocked_at, duration_minutes
+                FROM blocked_ips
+            """)
+            now = datetime.now()
+            for row in c.fetchall():
+                ip_addr, blocked_at_str, dur = row
+                if dur is None:
+                    dur = AUTO_UNBLOCK_MINUTES
+                try:
+                    blocked_at = datetime.fromisoformat(blocked_at_str)
+                except (ValueError, TypeError):
+                    continue
+                if now >= blocked_at + timedelta(minutes=dur):
+                    c.execute("DELETE FROM blocked_ips WHERE ip_address = ?", (ip_addr,))
+                    conn.commit()
+                    print(f"[Auto-Unblock] Expired: {ip_addr}")
+            conn.close()
+        except Exception as e:
+            print(f"[Auto-Unblock] Error: {e}")
+        _time.sleep(60)
+
+
+def start_auto_unblock():
+    """Launch the auto-unblock daemon thread."""
+    import threading
+    t = threading.Thread(target=_auto_unblock_loop, daemon=True)
+    t.start()
+    print("[Auto-Unblock] Scheduler started")
+
+
 if __name__ == '__main__':
     init_db()
+    start_auto_unblock()
     app.run(debug=False, host='0.0.0.0', port=5000)

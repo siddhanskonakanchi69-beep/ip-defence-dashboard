@@ -1,1 +1,109 @@
 timestamp,ip_address,method,endpoint,status_code,user_agent,threat_level
+2026-03-15T02:44:51.330728,127.0.0.1,POST,/api/block_ip,401,werkzeug/2.3.6,normal
+2026-03-15T02:44:51.351569,127.0.0.1,POST,/api/block_ip,200,werkzeug/2.3.6,normal
+2026-03-15T02:44:51.371906,127.0.0.1,POST,/api/block_ip,200,werkzeug/2.3.6,normal
+2026-03-15T02:44:51.380026,127.0.0.1,POST,/api/block_ip,200,werkzeug/2.3.6,normal
+2026-03-15T02:44:51.385025,127.0.0.1,GET,/api/blocked_ips,200,werkzeug/2.3.6,normal
+2026-03-15T02:44:51.406313,127.0.0.1,POST,/api/block_ip,200,werkzeug/2.3.6,normal
+2026-03-15T02:44:51.414892,127.0.0.1,POST,/api/unblock_ip,200,werkzeug/2.3.6,normal
+2026-03-15T02:46:00.848492,127.0.0.1,GET,/,302,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",normal
+2026-03-15T02:46:00.867096,127.0.0.1,GET,/login,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",normal
+2026-03-15T02:46:00.968433,127.0.0.1,GET,/favicon.ico,404,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",normal
+2026-03-15T02:46:06.195986,127.0.0.1,POST,/login,302,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",normal
+2026-03-15T02:46:06.230396,127.0.0.1,GET,/dashboard,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",normal
+2026-03-15T02:46:06.261476,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",normal
+2026-03-15T02:46:11.259593,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",normal
+2026-03-15T02:46:11.440473,127.0.0.1,GET,/api/ip_logs_preview,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",normal
+2026-03-15T02:46:16.258399,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",normal
+2026-03-15T02:46:21.264341,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",normal
+2026-03-15T02:46:26.261690,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",normal
+2026-03-15T02:46:31.268711,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:46:36.310431,127.0.0.1,GET,/dashboard,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:46:36.328242,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:46:36.360427,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:46:41.351493,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:46:46.351069,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:46:51.861518,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:46:56.814129,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:47:01.807442,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:47:07.021982,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:47:07.044096,127.0.0.1,GET,/dashboard,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:47:07.085402,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:47:07.580516,127.0.0.1,POST,/api/block_ip,200,python-httpx/0.28.1,warning
+2026-03-15T02:47:12.811340,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:47:17.815715,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:47:22.098737,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:47:23.244255,127.0.0.1,GET,/dashboard,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:47:23.286213,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:47:24.949682,127.0.0.1,GET,/api/ip_logs_preview,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:47:28.814094,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:47:33.273211,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:47:38.324409,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:47:43.595125,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:47:48.323137,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:47:53.283299,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:47:53.313181,127.0.0.1,GET,/dashboard,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:47:53.356550,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:47:58.359100,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:48:03.354803,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:48:08.346179,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:48:13.352322,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:48:18.351003,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:48:23.350694,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:48:23.373089,127.0.0.1,GET,/dashboard,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:48:23.417090,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:48:28.434918,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:48:33.405806,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:48:38.398098,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:48:43.400123,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:48:48.404267,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:48:53.413437,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:48:53.439155,127.0.0.1,GET,/dashboard,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:48:53.493394,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:48:58.476836,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:49:03.475615,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:49:08.878665,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:49:13.817895,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:49:18.835278,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:49:23.890715,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:49:23.935413,127.0.0.1,GET,/dashboard,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:49:24.000278,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:49:29.834507,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:49:34.810768,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:49:39.000460,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:49:44.298767,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:49:49.957203,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:49:54.815873,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:49:54.847933,127.0.0.1,GET,/dashboard,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:49:54.902303,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:50:00.810067,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:50:05.035012,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:50:11.021405,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:50:15.918448,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:50:16.334898,127.0.0.1,POST,/api/block_ip,200,python-httpx/0.28.1,warning
+2026-03-15T02:50:20.811737,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:50:25.816811,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:50:25.843917,127.0.0.1,GET,/dashboard,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:50:25.898476,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:50:31.809326,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:50:35.905386,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:50:36.993849,127.0.0.1,GET,/dashboard,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:50:37.088405,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:50:42.046671,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:50:47.088156,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:50:47.302557,127.0.0.1,GET,/api/ip_logs_preview,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:50:52.815799,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:50:57.868141,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:51:02.878652,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:51:07.567995,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:51:07.622169,127.0.0.1,GET,/dashboard,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:51:07.732111,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:51:12.949207,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:51:17.852474,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:51:22.805920,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:51:27.817560,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:51:33.273981,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:51:37.840240,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:51:37.871806,127.0.0.1,GET,/dashboard,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:51:37.916861,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
+2026-03-15T02:51:43.817487,127.0.0.1,GET,/api/threat_stats,200,"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",warning
