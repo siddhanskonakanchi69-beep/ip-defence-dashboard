@@ -34,8 +34,8 @@ IP_LOG_FILE = "ip_logs.csv"  # Persistent IP data for ML models
 # ────────────────────────────────────────────────────────────────────────────────
 
 # Rate limiting thresholds (requests per minute)
-SUSPICIOUS_REQUEST_RATE = 30  # >30 req/min = suspicious
-CRITICAL_REQUEST_RATE = 100   # >100 req/min = critical
+SUSPICIOUS_REQUEST_RATE = 20  # >20 req/min = suspicious
+CRITICAL_REQUEST_RATE = 50   # >50 req/min = critical
 
 # Failed login attempts before auto-block
 FAILED_LOGIN_THRESHOLD = 5
