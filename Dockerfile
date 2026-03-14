@@ -1,11 +1,9 @@
-FROM python:3.11
+FROM python:3.10
 
 WORKDIR /app
 
 COPY . .
 
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install -r requirements.txt
 
-EXPOSE 5000
-
-CMD ["gunicorn", "-b", "0.0.0.0:5000", "app:app"]
+CMD ["gunicorn","app:app","--bind","0.0.0.0:5000"]

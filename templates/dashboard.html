@@ -5,10 +5,6 @@
 
 <title>IP Defense Dashboard</title>
 
-<meta name="google-site-verification" content="TZroO3VsMlaCG7ysJewEqNxfzKkgL_ECI63fK6YW3Nw">
-
-<link rel="stylesheet" href="/static/style.css">
-
 </head>
 
 <body>
@@ -17,15 +13,17 @@
 
 <a href="/logout">Logout</a>
 
+
 <h2>Block IP</h2>
 
 <form method="POST" action="/block_ip">
 
-<input type="text" name="ip" placeholder="Enter IP Address" required>
+<input type="text" name="ip" placeholder="Enter IP Address">
 
 <button type="submit">Block</button>
 
 </form>
+
 
 <h2>Blocked IPs</h2>
 
@@ -34,7 +32,7 @@
 {% for ip in blocked_ips %}
 
 <li>
-{{ ip.ip_address }} - blocked
+{{ ip.ip_address }}
 <a href="/unblock/{{ ip.id }}">Unblock</a>
 </li>
 
@@ -58,4 +56,5 @@
 </ul>
 
 </body>
+
 </html>

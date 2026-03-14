@@ -1,43 +1,44 @@
 from flask import Flask, render_template, request, redirect, session
-from flask_sqlalchemy import SQLAlchemy
+import sqlite3
 from datetime import datetime
 
 app = Flask(__name__)
-app.secret_key = "supersecretkey"
-
-# Database configuration
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///database.db"
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-
-db = SQLAlchemy(app)
+app.secret_key = "secret123"
 
 
-# -------------------------
-# DATABASE MODELS
-# -------------------------
-
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(50))
-    password = db.Column(db.String(50))
+def get_db():
+    conn = sqlite3.connect("database.db")
+    conn.row_factory = sqlite3.Row
+    return conn
 
 
-class BlockedIP(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    ip_address = db.Column(db.String(100))
+def init_db():
+    conn = get_db()
+    c = conn.cursor()
+
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS blocked_ips(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ip_address TEXT
+    )
+    """)
+
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS logs(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        time TEXT,
+        message TEXT
+    )
+    """)
+
+    conn.commit()
+    conn.close()
 
 
-class Log(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    message = db.Column(db.String(200))
-    time = db.Column(db.DateTime, default=datetime.utcnow)
+init_db()
 
 
-# -------------------------
-# LOGIN
-# -------------------------
-
-@app.route("/", methods=["GET", "POST"])
+@app.route("/", methods=["GET","POST"])
 def login():
 
     if request.method == "POST":
@@ -45,32 +46,12 @@ def login():
         username = request.form["username"]
         password = request.form["password"]
 
-        print(f"[LOGIN ATTEMPT] from {request.remote_addr}")
-
-        user = User.query.filter_by(username=username, password=password).first()
-
-        if user:
-
-            print("[LOGIN SUCCESS]")
-
+        if username == "admin" and password == "admin":
             session["user"] = username
-
-            log = Log(message="Admin logged in")
-            db.session.add(log)
-            db.session.commit()
-
             return redirect("/dashboard")
-
-        else:
-            print("[LOGIN FAILED]")
-            return "Invalid credentials"
 
     return render_template("login.html")
 
-
-# -------------------------
-# DASHBOARD
-# -------------------------
 
 @app.route("/dashboard")
 def dashboard():
@@ -78,19 +59,24 @@ def dashboard():
     if "user" not in session:
         return redirect("/")
 
-    blocked_ips = BlockedIP.query.all()
+    conn = get_db()
 
-    try:
-        logs = Log.query.order_by(Log.time.desc()).all()
-    except:
-        logs = []
+    blocked_ips = conn.execute(
+        "SELECT * FROM blocked_ips"
+    ).fetchall()
 
-    return render_template("dashboard.html", blocked_ips=blocked_ips, logs=logs)
+    logs = conn.execute(
+        "SELECT * FROM logs ORDER BY id DESC"
+    ).fetchall()
 
+    conn.close()
 
-# -------------------------
-# BLOCK IP
-# -------------------------
+    return render_template(
+        "dashboard.html",
+        blocked_ips=blocked_ips,
+        logs=logs
+    )
+
 
 @app.route("/block_ip", methods=["POST"])
 def block_ip():
@@ -100,79 +86,58 @@ def block_ip():
 
     ip = request.form["ip"]
 
-    print(f"[SECURITY ALERT] Blocked IP {ip}")
+    conn = get_db()
 
-    new_ip = BlockedIP(ip_address=ip)
+    conn.execute(
+        "INSERT INTO blocked_ips(ip_address) VALUES(?)",
+        (ip,)
+    )
 
-    db.session.add(new_ip)
+    conn.execute(
+        "INSERT INTO logs(time,message) VALUES(?,?)",
+        (
+            datetime.now(),
+            f"Blocked IP {ip}"
+        )
+    )
 
-    log = Log(message=f"Blocked IP {ip}")
-    db.session.add(log)
-
-    db.session.commit()
+    conn.commit()
+    conn.close()
 
     return redirect("/dashboard")
 
-
-# -------------------------
-# UNBLOCK IP
-# -------------------------
 
 @app.route("/unblock/<int:id>")
 def unblock(id):
 
-    if "user" not in session:
-        return redirect("/")
+    conn = get_db()
 
-    ip = BlockedIP.query.get(id)
+    conn.execute(
+        "DELETE FROM blocked_ips WHERE id=?",
+        (id,)
+    )
 
-    print(f"[SECURITY] Unblocked IP {ip.ip_address}")
+    conn.execute(
+        "INSERT INTO logs(time,message) VALUES(?,?)",
+        (
+            datetime.now(),
+            "IP Unblocked"
+        )
+    )
 
-    log = Log(message=f"Unblocked IP {ip.ip_address}")
-    db.session.add(log)
-
-    db.session.delete(ip)
-
-    db.session.commit()
+    conn.commit()
+    conn.close()
 
     return redirect("/dashboard")
 
-
-# -------------------------
-# LOGOUT
-# -------------------------
 
 @app.route("/logout")
 def logout():
 
     session.clear()
 
-    print("[SESSION] Admin logged out")
-
     return redirect("/")
 
 
-# -------------------------
-# DATABASE INITIALIZATION
-# -------------------------
-
-with app.app_context():
-
-    db.create_all()
-
-    if not User.query.filter_by(username="admin").first():
-
-        admin = User(username="admin", password="admin123")
-
-        db.session.add(admin)
-        db.session.commit()
-
-        print("Admin user created")
-
-
-# -------------------------
-# RUN APP
-# -------------------------
-
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0",port=5000)
