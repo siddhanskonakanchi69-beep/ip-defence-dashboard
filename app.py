@@ -31,6 +31,11 @@ API_KEY = os.environ.get("DASHBOARD_API_KEY", "changeme-key")
 AUTO_UNBLOCK_MINUTES = int(os.environ.get("AUTO_UNBLOCK_MINUTES", 60))
 IP_LOG_FILE = "ip_logs.csv"  # Persistent IP data for ML models
 
+# Initialize database tables and start background tasks
+# Moved here so it runs globally when loaded by Gunicorn on Render
+init_db()
+start_auto_unblock()
+
 # ────────────────────────────────────────────────────────────────────────────────
 # SECURITY MONITORING CONFIG
 # ────────────────────────────────────────────────────────────────────────────────
@@ -740,6 +745,4 @@ def start_auto_unblock():
 
 
 if __name__ == '__main__':
-    init_db()
-    start_auto_unblock()
-    app.run(debug=False, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5000)
