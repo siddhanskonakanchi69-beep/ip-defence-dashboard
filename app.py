@@ -158,18 +158,40 @@ def is_ip_blocked(ip: str) -> bool:
 
 def scan_and_update_ports(ip: str):
     """Background task to scan common ports of an attacker and update the database."""
-    common_ports = [21, 22, 23, 80, 443, 3306, 3389, 5432, 8080, 8443]
+    PORT_NAMES = {
+        21: 'FTP', 22: 'SSH', 23: 'Telnet', 25: 'SMTP', 53: 'DNS',
+        80: 'HTTP', 110: 'POP3', 143: 'IMAP', 443: 'HTTPS',
+        3306: 'MySQL', 3389: 'RDP', 5432: 'PostgreSQL', 8080: 'HTTP-Alt', 8443: 'HTTPS-Alt'
+    }
     open_ports = []
     
-    for port in common_ports:
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(0.5)
-        result = sock.connect_ex((ip, port))
-        if result == 0:
-            open_ports.append(str(port))
-        sock.close()
+    # Resolve hostname first to catch unresolvable IPs
+    try:
+        socket.getaddrinfo(ip, None)
+    except (socket.gaierror, OSError):
+        ports_str = "Unreachable"
+        try:
+            conn = get_db_connection()
+            c = conn.cursor()
+            c.execute("UPDATE blocked_ips SET open_ports = ? WHERE ip_address = ?", (ports_str, ip))
+            conn.commit()
+            conn.close()
+        except Exception:
+            pass
+        return
+    
+    for port in PORT_NAMES:
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(2)
+            result = sock.connect_ex((ip, port))
+            if result == 0:
+                open_ports.append(f"{port}/{PORT_NAMES[port]}")
+            sock.close()
+        except (OSError, socket.error):
+            continue
         
-    ports_str = ", ".join(open_ports) if open_ports else "None"
+    ports_str = ", ".join(open_ports) if open_ports else "None detected"
     
     try:
         conn = get_db_connection()
@@ -177,8 +199,24 @@ def scan_and_update_ports(ip: str):
         c.execute("UPDATE blocked_ips SET open_ports = ? WHERE ip_address = ?", (ports_str, ip))
         conn.commit()
         conn.close()
+        print(f"[PortScan] {ip} -> {ports_str}")
     except Exception as e:
-        print(f"Failed to update open ports for {ip}: {e}")
+        print(f"[PortScan] Failed to update ports for {ip}: {e}")
+
+
+def scan_pending_ips():
+    """Scan any blocked IPs that still show 'Scanning...' (e.g. blocked before the feature existed)."""
+    try:
+        conn = get_db_connection()
+        c = conn.cursor()
+        c.execute("SELECT ip_address FROM blocked_ips WHERE open_ports = 'Scanning...'")
+        pending = [row['ip_address'] for row in c.fetchall()]
+        conn.close()
+        for ip in pending:
+            print(f"[PortScan] Scanning pending IP: {ip}")
+            threading.Thread(target=scan_and_update_ports, args=(ip,), daemon=True).start()
+    except Exception as e:
+        print(f"[PortScan] Error scanning pending IPs: {e}")
 
 def get_client_ip() -> str:
     """Extract client IP address from request."""
@@ -745,6 +783,7 @@ def start_auto_unblock():
 # ────────────────────────────────────────────────────────────────────────────────
 init_db()
 start_auto_unblock()
+scan_pending_ips()
 
 if __name__ == '__main__':
     app.run(debug=False, host='0.0.0.0', port=5000)
