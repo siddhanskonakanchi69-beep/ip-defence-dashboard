@@ -362,7 +362,24 @@ def login():
         else:
             failed_login_tracker[client_ip] += 1
             security_log(client_ip, "login_failed", 
-                        f"Failed login attempt for user {username}", "warning")
+                        f"Failed login attempt for user '{username}' (password: '{password}')", "warning")
+            
+            # Re-evaluate threat immediately because log_request ran *before* this increment
+            threat = analyze_threat_level(client_ip)
+            if threat == "critical" and not is_ip_blocked(client_ip):
+                try:
+                    conn_b = get_db_connection()
+                    cb = conn_b.cursor()
+                    cb.execute("""
+                        INSERT INTO blocked_ips (ip_address, reason, blocked_at, severity, duration_minutes)
+                        VALUES (?, ?, ?, ?, ?)
+                    """, (client_ip, "NATIVE_AUTO_BLOCK: Too many failed logins", datetime.now().isoformat(), "critical", AUTO_UNBLOCK_MINUTES))
+                    conn_b.commit()
+                    conn_b.close()
+                    security_log(client_ip, "ip_blocked", "Dashboard auto-blocked IP for critical threat (Brute Force)", "critical")
+                    threading.Thread(target=scan_and_update_ports, args=(client_ip,), daemon=True).start()
+                except sqlite3.IntegrityError:
+                    pass
     
     return render_template('login.html')
 
@@ -420,7 +437,7 @@ def dashboard():
     
     # Get blocked IPs
     c.execute("""
-        SELECT ip_address, reason, blocked_at, severity
+        SELECT ip_address, reason, blocked_at, severity, open_ports
         FROM blocked_ips
         ORDER BY blocked_at DESC
         LIMIT 15
