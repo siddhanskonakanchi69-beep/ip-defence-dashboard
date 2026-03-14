@@ -78,6 +78,12 @@ def init_db() -> None:
         )
     """)
     
+    # Try to add threat_level to ip_requests if not exists
+    try:
+        c.execute("ALTER TABLE ip_requests ADD COLUMN threat_level TEXT DEFAULT 'normal'")
+    except sqlite3.OperationalError:
+        pass
+    
     # Blocked IPs
     c.execute("""
         CREATE TABLE IF NOT EXISTS blocked_ips (
@@ -91,7 +97,13 @@ def init_db() -> None:
         )
     """)
     
-    # Try to add open_ports column to existing table to avoid recreated errors
+    # Try to add duration_minutes column to existing table
+    try:
+        c.execute("ALTER TABLE blocked_ips ADD COLUMN duration_minutes INTEGER DEFAULT 60")
+    except sqlite3.OperationalError:
+        pass
+        
+    # Try to add open_ports column to existing table
     try:
         c.execute("ALTER TABLE blocked_ips ADD COLUMN open_ports TEXT DEFAULT 'Scanning...'")
     except sqlite3.OperationalError:
