@@ -1,60 +1,134 @@
 <!DOCTYPE html>
-<html>
-
+<html lang="en">
 <head>
-
+<meta charset="UTF-8">
 <title>IP Defense Dashboard</title>
-
+<meta http-equiv="refresh" content="15">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
+  header { background: #1a1d2e; padding: 16px 32px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2d3748; }
+  header h1 { font-size: 20px; font-weight: 600; color: #63b3ed; }
+  header a { color: #a0aec0; text-decoration: none; font-size: 14px; }
+  header a:hover { color: #e2e8f0; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 24px 32px; }
+  .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 28px; }
+  .stat-card { background: #1a1d2e; border: 1px solid #2d3748; border-radius: 10px; padding: 20px; }
+  .stat-card .label { font-size: 12px; color: #718096; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+  .stat-card .value { font-size: 28px; font-weight: 600; }
+  .stat-card.danger .value { color: #fc8181; }
+  .stat-card.warning .value { color: #f6ad55; }
+  .stat-card.success .value { color: #68d391; }
+  .ai-badge { display: inline-block; background: #2d3748; color: #63b3ed; font-size: 10px; padding: 2px 8px; border-radius: 20px; margin-left: 8px; vertical-align: middle; }
+  .section { background: #1a1d2e; border: 1px solid #2d3748; border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+  .section h2 { font-size: 15px; font-weight: 600; margin-bottom: 16px; color: #a0aec0; text-transform: uppercase; letter-spacing: 0.05em; }
+  .block-form { display: flex; gap: 10px; margin-bottom: 16px; }
+  .block-form input { flex: 1; background: #0f1117; border: 1px solid #2d3748; border-radius: 6px; padding: 8px 12px; color: #e2e8f0; font-size: 14px; }
+  .block-form input:focus { outline: none; border-color: #63b3ed; }
+  .btn { padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; }
+  .btn-block { background: #e53e3e; color: white; }
+  .btn-block:hover { background: #c53030; }
+  .btn-unblock { background: transparent; border: 1px solid #4a5568; color: #a0aec0; padding: 4px 10px; font-size: 12px; border-radius: 4px; }
+  .btn-unblock:hover { border-color: #718096; color: #e2e8f0; }
+  .ip-list { list-style: none; }
+  .ip-list li { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #2d3748; font-size: 14px; }
+  .ip-list li:last-child { border-bottom: none; }
+  .ip-tag { background: #742a2a; color: #fc8181; padding: 2px 10px; border-radius: 4px; font-family: monospace; font-size: 13px; }
+  .log-list { list-style: none; max-height: 320px; overflow-y: auto; }
+  .log-list li { padding: 6px 0; border-bottom: 1px solid #1e2130; font-size: 13px; color: #a0aec0; line-height: 1.5; }
+  .log-list li:last-child { border-bottom: none; }
+  .log-list li .time { color: #4a5568; margin-right: 8px; font-family: monospace; }
+  .log-ai { color: #63b3ed !important; }
+  .log-block { color: #fc8181 !important; }
+  .empty { color: #4a5568; font-size: 13px; text-align: center; padding: 16px 0; }
+  .demo-btn { background: #2b6cb0; color: white; text-decoration: none; padding: 6px 14px; border-radius: 6px; font-size: 12px; display: inline-block; margin-top: 8px; }
+  .demo-btn:hover { background: #2c5282; }
+</style>
 </head>
-
 <body>
 
-<h1>IP Defense Dashboard</h1>
+<header>
+  <h1>🛡 IP Defense Dashboard <span class="ai-badge">AI-Powered</span></h1>
+  <a href="/logout">Logout</a>
+</header>
 
-<a href="/logout">Logout</a>
+<div class="container">
 
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-card danger">
+      <div class="label">Blocked IPs</div>
+      <div class="value">{{ blocked_ips | length }}</div>
+    </div>
+    <div class="stat-card warning">
+      <div class="label">Total Log Entries</div>
+      <div class="value">{{ logs | length }}</div>
+    </div>
+    <div class="stat-card success">
+      <div class="label">AI Agent Status</div>
+      <div class="value" style="font-size:16px; padding-top:6px;">
+        {% if ai_stats %}🟢 Connected{% else %}🔴 Offline{% endif %}
+      </div>
+    </div>
+  </div>
 
-<h2>Block IP</h2>
+  <!-- Block IP -->
+  <div class="section">
+    <h2>Block IP Address</h2>
+    <form class="block-form" method="POST" action="/block_ip">
+      <input type="text" name="ip" placeholder="e.g. 192.168.1.100" required>
+      <button class="btn btn-block" type="submit">Block IP</button>
+    </form>
+    <a class="demo-btn" href="http://localhost:5050/sync/inject_test" target="_blank">
+      ⚡ Inject Test AI Alert
+    </a>
+  </div>
 
-<form method="POST" action="/block_ip">
+  <!-- Blocked IPs -->
+  <div class="section">
+    <h2>Blocked IPs ({{ blocked_ips | length }})</h2>
+    {% if blocked_ips %}
+    <ul class="ip-list">
+      {% for ip in blocked_ips %}
+      <li>
+        <span class="ip-tag">{{ ip.ip_address }}</span>
+        <a href="/unblock/{{ ip.id }}"><button class="btn btn-unblock">Unblock</button></a>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <div class="empty">No IPs blocked yet — AI agents will auto-block detected threats</div>
+    {% endif %}
+  </div>
 
-<input type="text" name="ip" placeholder="Enter IP Address">
+  <!-- Activity Log -->
+  <div class="section">
+    <h2>Activity Log</h2>
+    {% if logs %}
+    <ul class="log-list">
+      {% for log in logs %}
+      <li class="{% if 'AI Agent' in log.message or 'AUTO-BLOCKED' in log.message %}log-ai{% elif 'Blocked' in log.message %}log-block{% endif %}">
+        <span class="time">{{ log.time }}</span>{{ log.message }}
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <div class="empty">No activity yet</div>
+    {% endif %}
+  </div>
 
-<button type="submit">Block</button>
+</div>
 
-</form>
-
-
-<h2>Blocked IPs</h2>
-
-<ul>
-
-{% for ip in blocked_ips %}
-
-<li>
-{{ ip.ip_address }}
-<a href="/unblock/{{ ip.id }}">Unblock</a>
-</li>
-
-{% endfor %}
-
-</ul>
-
-
-<h2>Logs</h2>
-
-<ul>
-
-{% for log in logs %}
-
-<li>
-{{ log.time }} — {{ log.message }}
-</li>
-
-{% endfor %}
-
-</ul>
+<script>
+// Auto-refresh stats every 10 seconds without full page reload
+setInterval(async () => {
+  try {
+    const r = await fetch('/api/stats');
+    const d = await r.json();
+    console.log('Live stats:', d);
+  } catch(e) {}
+}, 10000);
+</script>
 
 </body>
-
 </html>
