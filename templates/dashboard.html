@@ -396,8 +396,13 @@
                 {% for ip in blocked_ips %}
                 <li>
                     <div>
-                        <span class="ip-tag">{{ ip.ip_address }}</span>
-                        <small style="color: #a0aec0; margin-left: 12px;">{{ ip.reason }}</small>
+                        <div>
+                            <span class="ip-tag">{{ ip.ip_address }}</span>
+                            <small style="color: #a0aec0; margin-left: 12px;">{{ ip.reason }}</small>
+                        </div>
+                        <div style="margin-top: 6px;">
+                            <small style="color: #63b3ed; font-family: 'Courier New', monospace;">Open Ports: {{ ip.open_ports }}</small>
+                        </div>
                     </div>
                     <a href="/unblock/{{ ip.ip_address }}" class="btn btn-danger btn-small">Unblock</a>
                 </li>

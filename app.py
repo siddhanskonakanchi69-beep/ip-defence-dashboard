@@ -17,6 +17,8 @@ import hashlib
 import secrets
 import csv
 import os
+import socket
+import threading
 from datetime import datetime, timedelta
 from collections import defaultdict
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
@@ -84,9 +86,16 @@ def init_db() -> None:
             reason TEXT,
             blocked_at TEXT,
             severity TEXT DEFAULT 'high',
-            duration_minutes INTEGER DEFAULT 60
+            duration_minutes INTEGER DEFAULT 60,
+            open_ports TEXT DEFAULT 'Scanning...'
         )
     """)
+    
+    # Try to add open_ports column to existing table to avoid recreated errors
+    try:
+        c.execute("ALTER TABLE blocked_ips ADD COLUMN open_ports TEXT DEFAULT 'Scanning...'")
+    except sqlite3.OperationalError:
+        pass
     
     # Security logs
     c.execute("""
@@ -133,6 +142,30 @@ def is_ip_blocked(ip: str) -> bool:
     conn.close()
     return result is not None
 
+
+def scan_and_update_ports(ip: str):
+    """Background task to scan common ports of an attacker and update the database."""
+    common_ports = [21, 22, 23, 80, 443, 3306, 3389, 5432, 8080, 8443]
+    open_ports = []
+    
+    for port in common_ports:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(0.5)
+        result = sock.connect_ex((ip, port))
+        if result == 0:
+            open_ports.append(str(port))
+        sock.close()
+        
+    ports_str = ", ".join(open_ports) if open_ports else "None"
+    
+    try:
+        conn = get_db_connection()
+        c = conn.cursor()
+        c.execute("UPDATE blocked_ips SET open_ports = ? WHERE ip_address = ?", (ports_str, ip))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"Failed to update open ports for {ip}: {e}")
 
 def get_client_ip() -> str:
     """Extract client IP address from request."""
@@ -203,6 +236,9 @@ def log_request(ip: str, method: str, endpoint: str, status_code: int) -> None:
             conn.commit()
             conn.close()
             security_log(ip, "ip_blocked", "Dashboard auto-blocked IP for critical threat level", "critical")
+            
+            # Start background port scan
+            threading.Thread(target=scan_and_update_ports, args=(ip,), daemon=True).start()
         except sqlite3.IntegrityError:
             pass
 
@@ -590,6 +626,10 @@ def api_block_ip():
         conn.commit()
         conn.close()
         security_log(ip, "ip_blocked", f"API block: {reason}", "critical")
+        
+        # Start background port scan
+        threading.Thread(target=scan_and_update_ports, args=(ip,), daemon=True).start()
+        
         return jsonify({"success": True, "message": f"Blocked {ip}"}), 200
     except sqlite3.IntegrityError:
         return jsonify({"success": True, "message": f"{ip} already blocked"}), 200
