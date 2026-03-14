@@ -37,7 +37,8 @@ def init_db():
 init_db()
 
 
-@app.route("/", methods=["GET", "POST"])
+# LOGIN
+@app.route("/", methods=["GET","POST"])
 def login():
 
     if request.method == "POST":
@@ -45,16 +46,30 @@ def login():
         username = request.form.get("username")
         password = request.form.get("password")
 
-        # simple login
+        user_ip = request.remote_addr
+
         if username == "admin" and password == "admin":
+
             session["user"] = username
+
+            print(f"[LOGIN] {datetime.now()} User logged in from IP: {user_ip}", flush=True)
+
+            conn = get_db()
+            conn.execute(
+                "INSERT INTO logs(time,message) VALUES(?,?)",
+                (datetime.now(), f"User login from IP {user_ip}")
+            )
+            conn.commit()
+            conn.close()
+
             return redirect("/dashboard")
 
-        return "Invalid login"
+        print(f"[FAILED LOGIN] {datetime.now()} Failed login from {user_ip}", flush=True)
 
     return render_template("login.html")
 
 
+# DASHBOARD
 @app.route("/dashboard")
 def dashboard():
 
@@ -80,6 +95,7 @@ def dashboard():
     )
 
 
+# BLOCK IP
 @app.route("/block_ip", methods=["POST"])
 def block_ip():
 
@@ -103,9 +119,12 @@ def block_ip():
     conn.commit()
     conn.close()
 
+    print(f"[BLOCK] {datetime.now()} Blocked IP: {ip}", flush=True)
+
     return redirect("/dashboard")
 
 
+# UNBLOCK IP
 @app.route("/unblock/<int:id>")
 def unblock(id):
 
@@ -119,14 +138,21 @@ def unblock(id):
     conn.commit()
     conn.close()
 
+    print(f"[UNBLOCK] {datetime.now()} Unblocked IP ID: {id}", flush=True)
+
     return redirect("/dashboard")
 
 
+# LOGOUT
 @app.route("/logout")
 def logout():
+
+    print(f"[LOGOUT] {datetime.now()} User logged out", flush=True)
+
     session.clear()
+
     return redirect("/")
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0",port=5000)
