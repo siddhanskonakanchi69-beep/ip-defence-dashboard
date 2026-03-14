@@ -190,6 +190,21 @@ def log_request(ip: str, method: str, endpoint: str, status_code: int) -> None:
     
     # Also log to CSV for ML model training
     log_request_to_csv(ip, method, endpoint, status_code, threat_level)
+    
+    # Auto-block immediately if the dashboard natively detects a critical threat (e.g., sqlmap flooding)
+    if threat_level == "critical" and not is_ip_blocked(ip):
+        try:
+            conn = get_db_connection()
+            c = conn.cursor()
+            c.execute("""
+                INSERT INTO blocked_ips (ip_address, reason, blocked_at, severity, duration_minutes)
+                VALUES (?, ?, ?, ?, ?)
+            """, (ip, "NATIVE_AUTO_BLOCK: Critical request rate or brute force", datetime.now().isoformat(), "critical", AUTO_UNBLOCK_MINUTES))
+            conn.commit()
+            conn.close()
+            security_log(ip, "ip_blocked", "Dashboard auto-blocked IP for critical threat level", "critical")
+        except sqlite3.IntegrityError:
+            pass
 
 
 def analyze_threat_level(ip: str) -> str:
