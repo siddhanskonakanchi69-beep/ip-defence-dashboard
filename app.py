@@ -1,293 +1,534 @@
 """
-dashboard_bridge.py
-Connects the cybersecurity multi-agent system to the Flask IP Defense Dashboard.
+IP Defense Dashboard - Real-Time Cybersecurity Traffic Monitor
 
-Consumes classified threats from Kafka and:
-  1. Writes blocked IPs into the Flask dashboard's SQLite database
-  2. Writes log entries for every threat event
-  3. Exposes a /sync endpoint so the dashboard can pull live ES data
-
-Run alongside your agents:
-  python dashboard_bridge.py
-
-The Flask dashboard will then show real-time threat data from your AI agents.
+Features:
+  ✓ Real-time user IP tracking via server-side logging
+  ✓ Request rate analysis and anomaly detection
+  ✓ Suspicious activity flagging (brute force, port scanning patterns)
+  ✓ Auto-blocking dangerous IPs
+  ✓ Live visitor analytics dashboard
+  ✓ Security metrics and trends
 """
 
 from __future__ import annotations
 
-import json
-import os
 import sqlite3
-import threading
-from datetime import datetime
-from typing import Any
+import hashlib
+import secrets
+import csv
+import os
+from datetime import datetime, timedelta
+from collections import defaultdict
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+from functools import wraps
 
-from flask import Flask, jsonify
-from loguru import logger
-from dotenv import load_dotenv
+app = Flask(__name__)
+app.secret_key = secrets.token_hex(16)
+DATABASE = "database.db"
+IP_LOG_FILE = "ip_logs.csv"  # Persistent IP data for ML models
 
-load_dotenv()
+# ────────────────────────────────────────────────────────────────────────────────
+# SECURITY MONITORING CONFIG
+# ────────────────────────────────────────────────────────────────────────────────
 
-# ── Config ────────────────────────────────────────────────────────────────────
-# Path to the Flask dashboard's SQLite database
-DASHBOARD_DB: str = os.getenv(
-    "DASHBOARD_DB_PATH",
-    "../ip-defense-dashboard/database.db"   # adjust if needed
-)
+# Rate limiting thresholds (requests per minute)
+SUSPICIOUS_REQUEST_RATE = 30  # >30 req/min = suspicious
+CRITICAL_REQUEST_RATE = 100   # >100 req/min = critical
 
-KAFKA_BOOTSTRAP: str = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092")
-BRIDGE_PORT: int     = int(os.getenv("BRIDGE_PORT", 5050))
+# Failed login attempts before auto-block
+FAILED_LOGIN_THRESHOLD = 5
 
-# Only auto-block IPs for these severity levels
-AUTO_BLOCK_SEVERITIES: set[str] = {"critical", "high"}
+# Memory cache for real-time request tracking (IP -> list of timestamps)
+request_tracker = defaultdict(list)
+failed_login_tracker = defaultdict(int)
+
+# ────────────────────────────────────────────────────────────────────────────────
+# DATABASE FUNCTIONS
+# ────────────────────────────────────────────────────────────────────────────────
+
+def init_db() -> None:
+    """Initialize SQLite database with required tables."""
+    conn = sqlite3.connect(DATABASE)
+    c = conn.cursor()
+    
+    # Users table for login
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL
+        )
+    """)
+    
+    # IP requests tracking
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS ip_requests (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ip_address TEXT NOT NULL,
+            timestamp TEXT NOT NULL,
+            method TEXT,
+            endpoint TEXT,
+            status_code INTEGER,
+            user_agent TEXT,
+            threat_level TEXT DEFAULT 'normal'
+        )
+    """)
+    
+    # Blocked IPs
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS blocked_ips (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ip_address TEXT UNIQUE NOT NULL,
+            reason TEXT,
+            blocked_at TEXT,
+            severity TEXT DEFAULT 'high'
+        )
+    """)
+    
+    # Security logs
+    c.execute("""
+        CREATE TABLE IF NOT EXISTS security_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp TEXT NOT NULL,
+            event_type TEXT,
+            ip_address TEXT,
+            message TEXT,
+            severity TEXT DEFAULT 'info'
+        )
+    """)
+    
+    # Create default admin user if not exists
+    try:
+        password_hash = hashlib.sha256("admin123".encode()).hexdigest()
+        c.execute(
+            "INSERT INTO users (username, password_hash) VALUES (?, ?)",
+            ("admin", password_hash)
+        )
+    except sqlite3.IntegrityError:
+        pass
+    
+    conn.commit()
+    conn.close()
+    
+    # Initialize CSV log file for ML training
+    init_ip_log()
 
 
-# ── SQLite helpers ─────────────────────────────────────────────────────────────
-
-def get_dashboard_db() -> sqlite3.Connection:
-    """
-    Return a connection to the Flask dashboard's SQLite database.
-
-    Returns:
-        sqlite3.Connection with row_factory set
-    """
-    conn = sqlite3.connect(DASHBOARD_DB)
+def get_db_connection() -> sqlite3.Connection:
+    """Get a database connection."""
+    conn = sqlite3.connect(DATABASE)
     conn.row_factory = sqlite3.Row
     return conn
 
 
-def ensure_tables() -> None:
-    """
-    Create dashboard tables if they don't exist yet.
-    Safe to call on every startup.
-    """
-    conn = get_dashboard_db()
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS blocked_ips(
-            id         INTEGER PRIMARY KEY AUTOINCREMENT,
-            ip_address TEXT UNIQUE
-        )
-    """)
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS logs(
-            id      INTEGER PRIMARY KEY AUTOINCREMENT,
-            time    TEXT,
-            message TEXT
-        )
-    """)
+def is_ip_blocked(ip: str) -> bool:
+    """Check if an IP is in the blocked list."""
+    conn = get_db_connection()
+    c = conn.cursor()
+    c.execute("SELECT 1 FROM blocked_ips WHERE ip_address = ?", (ip,))
+    result = c.fetchone()
+    conn.close()
+    return result is not None
+
+
+def get_client_ip() -> str:
+    """Extract client IP address from request."""
+    if request.environ.get('HTTP_X_FORWARDED_FOR'):
+        return request.environ['HTTP_X_FORWARDED_FOR'].split(',')[0].strip()
+    return request.environ.get('REMOTE_ADDR', 'unknown')
+
+
+def init_ip_log() -> None:
+    """Initialize CSV file for IP logging if it doesn't exist."""
+    if not os.path.exists(IP_LOG_FILE):
+        with open(IP_LOG_FILE, 'w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow([
+                'timestamp', 'ip_address', 'method', 'endpoint', 
+                'status_code', 'user_agent', 'threat_level'
+            ])
+
+
+def log_request_to_csv(ip: str, method: str, endpoint: str, status_code: int, threat_level: str) -> None:
+    """Log request to CSV file for ML model training."""
+    try:
+        with open(IP_LOG_FILE, 'a', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow([
+                datetime.now().isoformat(),
+                ip,
+                method,
+                endpoint,
+                status_code,
+                request.headers.get('User-Agent', 'unknown'),
+                threat_level
+            ])
+    except Exception as e:
+        print(f"Error writing to CSV: {e}")
+
+
+def log_request(ip: str, method: str, endpoint: str, status_code: int) -> None:
+    """Log incoming request to database and CSV file."""
+    conn = get_db_connection()
+    c = conn.cursor()
+    user_agent = request.headers.get('User-Agent', 'unknown')
+    
+    # Analyze threat level
+    threat_level = analyze_threat_level(ip)
+    
+    c.execute("""
+        INSERT INTO ip_requests 
+        (ip_address, timestamp, method, endpoint, status_code, user_agent, threat_level)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+    """, (ip, datetime.now().isoformat(), method, endpoint, status_code, user_agent, threat_level))
+    
     conn.commit()
     conn.close()
-    logger.info(f"[BRIDGE] Dashboard DB ready at {DASHBOARD_DB}")
+    
+    # Also log to CSV for ML model training
+    log_request_to_csv(ip, method, endpoint, status_code, threat_level)
 
 
-def write_log(message: str) -> None:
-    """
-    Insert a log entry into the Flask dashboard's logs table.
+def analyze_threat_level(ip: str) -> str:
+    """Analyze IP threat level based on request patterns."""
+    conn = get_db_connection()
+    c = conn.cursor()
+    
+    # Count requests in last minute
+    one_minute_ago = (datetime.now() - timedelta(minutes=1)).isoformat()
+    c.execute(
+        "SELECT COUNT(*) FROM ip_requests WHERE ip_address = ? AND timestamp > ?",
+        (ip, one_minute_ago)
+    )
+    recent_count = c.fetchone()[0]
+    
+    # Count failed login attempts
+    failed_logins = failed_login_tracker.get(ip, 0)
+    
+    conn.close()
+    
+    # Determine threat level
+    if recent_count > CRITICAL_REQUEST_RATE or failed_logins >= FAILED_LOGIN_THRESHOLD:
+        return "critical"
+    elif recent_count > SUSPICIOUS_REQUEST_RATE or failed_logins >= 3:
+        return "suspicious"
+    elif recent_count > 10:
+        return "warning"
+    return "normal"
 
-    Args:
-        message: human-readable log string
-    """
+
+def security_log(ip: str, event_type: str, message: str, severity: str = "info") -> None:
+    """Write security event to log."""
+    conn = get_db_connection()
+    c = conn.cursor()
+    c.execute("""
+        INSERT INTO security_logs (timestamp, event_type, ip_address, message, severity)
+        VALUES (?, ?, ?, ?, ?)
+    """, (datetime.now().isoformat(), event_type, ip, message, severity))
+    conn.commit()
+    conn.close()
+
+
+# ────────────────────────────────────────────────────────────────────────────────
+# AUTHENTICATION & MIDDLEWARE
+# ────────────────────────────────────────────────────────────────────────────────
+
+def login_required(f):
+    """Decorator to require login."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+@app.before_request
+def check_blocked_ip():
+    """Check if incoming IP is blocked."""
+    client_ip = get_client_ip()
+    if is_ip_blocked(client_ip):
+        security_log(client_ip, "blocked_access", "Blocked IP attempted access", "critical")
+        return jsonify({"error": "Access denied - your IP is blocked"}), 403
+
+
+@app.after_request
+def log_request_middleware(response):
+    """Log all requests after processing."""
+    if request.endpoint not in ['static']:
+        client_ip = get_client_ip()
+        log_request(client_ip, request.method, request.path, response.status_code)
+    return response
+
+
+# ────────────────────────────────────────────────────────────────────────────────
+# ROUTES - Authentication
+# ────────────────────────────────────────────────────────────────────────────────
+
+@app.route('/')
+def index():
+    """Redirect to dashboard or login."""
+    if 'user_id' in session:
+        return redirect(url_for('dashboard'))
+    return redirect(url_for('login'))
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    """Login page."""
+    if request.method == 'POST':
+        username = request.form.get('username', '')
+        password = request.form.get('password', '')
+        client_ip = get_client_ip()
+        
+        # Check if IP has too many failed attempts
+        if failed_login_tracker.get(client_ip, 0) >= FAILED_LOGIN_THRESHOLD:
+            security_log(client_ip, "brute_force_detected", 
+                        f"Too many failed login attempts from {client_ip}", "critical")
+            block_ip(client_ip, "Brute force attack detected")
+            return jsonify({"error": "Too many failed attempts - IP blocked"}), 403
+        
+        # Verify credentials
+        conn = get_db_connection()
+        c = conn.cursor()
+        password_hash = hashlib.sha256(password.encode()).hexdigest()
+        c.execute("SELECT id FROM users WHERE username = ? AND password_hash = ?", 
+                 (username, password_hash))
+        user = c.fetchone()
+        conn.close()
+        
+        if user:
+            session['user_id'] = user['id']
+            session['username'] = username
+            failed_login_tracker[client_ip] = 0  # Reset counter
+            security_log(client_ip, "login_success", f"User {username} logged in", "info")
+            return redirect(url_for('dashboard'))
+        else:
+            failed_login_tracker[client_ip] += 1
+            security_log(client_ip, "login_failed", 
+                        f"Failed login attempt for user {username}", "warning")
+    
+    return render_template('login.html')
+
+
+@app.route('/logout')
+def logout():
+    """Logout user."""
+    username = session.get('username', 'unknown')
+    security_log(get_client_ip(), "logout", f"User {username} logged out", "info")
+    session.clear()
+    return redirect(url_for('login'))
+
+
+# ────────────────────────────────────────────────────────────────────────────────
+# ROUTES - Dashboard
+# ────────────────────────────────────────────────────────────────────────────────
+
+@app.route('/dashboard')
+@login_required
+def dashboard():
+    """Main dashboard with security metrics."""
+    conn = get_db_connection()
+    c = conn.cursor()
+    
+    # Get statistics
+    c.execute("SELECT COUNT(*) FROM ip_requests")
+    total_requests = c.fetchone()[0]
+    
+    c.execute("SELECT COUNT(DISTINCT ip_address) FROM ip_requests")
+    unique_ips = c.fetchone()[0]
+    
+    c.execute("SELECT COUNT(*) FROM blocked_ips")
+    blocked_count = c.fetchone()[0]
+    
+    # Get recent suspicious activity
+    c.execute("""
+        SELECT DISTINCT ip_address, COUNT(*) as request_count, 
+               MAX(timestamp) as last_seen, threat_level
+        FROM ip_requests
+        WHERE timestamp > datetime('now', '-1 hour')
+        GROUP BY ip_address
+        ORDER BY request_count DESC
+        LIMIT 10
+    """)
+    suspicious_ips = c.fetchall()
+    
+    # Get recent security logs
+    c.execute("""
+        SELECT timestamp, event_type, ip_address, message, severity
+        FROM security_logs
+        ORDER BY id DESC
+        LIMIT 20
+    """)
+    logs = c.fetchall()
+    
+    # Get blocked IPs
+    c.execute("""
+        SELECT ip_address, reason, blocked_at, severity
+        FROM blocked_ips
+        ORDER BY blocked_at DESC
+        LIMIT 15
+    """)
+    blocked_ips = c.fetchall()
+    
+    conn.close()
+    
+    return render_template('dashboard.html',
+                         total_requests=total_requests,
+                         unique_ips=unique_ips,
+                         blocked_count=blocked_count,
+                         suspicious_ips=suspicious_ips,
+                         logs=logs,
+                         blocked_ips=blocked_ips,
+                         username=session.get('username'))
+
+
+# ────────────────────────────────────────────────────────────────────────────────
+# ROUTES - IP Management
+# ────────────────────────────────────────────────────────────────────────────────
+
+def block_ip(ip: str, reason: str) -> bool:
+    """Block an IP address."""
     try:
-        conn = get_dashboard_db()
-        conn.execute(
-            "INSERT INTO logs(time, message) VALUES(?, ?)",
-            (datetime.now().strftime("%Y-%m-%d %H:%M:%S"), message)
-        )
+        conn = get_db_connection()
+        c = conn.cursor()
+        c.execute("""
+            INSERT INTO blocked_ips (ip_address, reason, blocked_at, severity)
+            VALUES (?, ?, ?, ?)
+        """, (ip, reason, datetime.now().isoformat(), "high"))
         conn.commit()
         conn.close()
-    except Exception as exc:
-        logger.error(f"[BRIDGE] Failed to write log: {exc}")
-
-
-def block_ip_in_dashboard(ip: str, reason: str) -> bool:
-    """
-    Add an IP to the Flask dashboard's blocked_ips table.
-    Silently ignores duplicates (IP already blocked).
-
-    Args:
-        ip:     IP address string to block
-        reason: reason for blocking (shown in log)
-
-    Returns:
-        True if newly blocked, False if already existed
-    """
-    try:
-        conn = get_dashboard_db()
-        existing = conn.execute(
-            "SELECT id FROM blocked_ips WHERE ip_address = ?", (ip,)
-        ).fetchone()
-
-        if existing:
-            conn.close()
-            return False
-
-        conn.execute(
-            "INSERT INTO blocked_ips(ip_address) VALUES(?)", (ip,)
-        )
-        conn.execute(
-            "INSERT INTO logs(time, message) VALUES(?, ?)",
-            (datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-             f"[AUTO-BLOCKED by AI Agent] {ip} — {reason}")
-        )
-        conn.commit()
-        conn.close()
-        logger.warning(f"[BRIDGE] Blocked IP in dashboard: {ip} | {reason}")
+        security_log(ip, "ip_blocked", f"IP blocked: {reason}", "critical")
         return True
-
-    except Exception as exc:
-        logger.error(f"[BRIDGE] Failed to block IP {ip}: {exc}")
+    except sqlite3.IntegrityError:
         return False
 
 
-# ── Threat Processing ──────────────────────────────────────────────────────────
-
-def process_threat(threat: dict[str, Any]) -> None:
-    """
-    Process a classified threat from Kafka and push it to the Flask dashboard.
-
-    Actions taken:
-        - Always: writes a log entry with threat summary
-        - If severity is critical/high AND source_ip exists: blocks the IP
-
-    Args:
-        threat: classified threat dict from the threats.classified Kafka topic
-    """
-    severity    = threat.get("severity", "unknown")
-    source_ip   = threat.get("source_ip")
-    agent_id    = threat.get("agent_id", "unknown-agent")
-    mitre_ttp   = threat.get("mitre_ttp", "")
-    details     = threat.get("details", {})
-    pattern     = details.get("pattern", "unknown pattern")
-    confidence  = threat.get("confidence", 0.0)
-
-    # Always log the threat
-    log_msg = (
-        f"[{severity.upper()}] {pattern} detected by {agent_id} "
-        f"| src={source_ip or 'N/A'} | TTP={mitre_ttp} "
-        f"| confidence={confidence:.0%}"
-    )
-    write_log(log_msg)
-
-    # Auto-block high/critical threats with a known source IP
-    if severity in AUTO_BLOCK_SEVERITIES and source_ip:
-        reason = f"{pattern} ({mitre_ttp}) — confidence {confidence:.0%}"
-        blocked = block_ip_in_dashboard(source_ip, reason)
-        if blocked:
-            write_log(f"[RESPONSE] Auto-blocked {source_ip} — triggered by {pattern}")
+@app.route('/block_ip', methods=['POST'])
+@login_required
+def block_ip_route():
+    """Block an IP address via dashboard."""
+    ip = request.form.get('ip', '')
+    reason = request.form.get('reason', 'Manual block')
+    
+    if block_ip(ip, reason):
+        return redirect(url_for('dashboard'))
+    return redirect(url_for('dashboard'))
 
 
-# ── Kafka Consumer Thread ──────────────────────────────────────────────────────
+@app.route('/unblock/<ip>')
+@login_required
+def unblock_ip(ip: str):
+    """Unblock an IP address."""
+    conn = get_db_connection()
+    c = conn.cursor()
+    c.execute("DELETE FROM blocked_ips WHERE ip_address = ?", (ip,))
+    conn.commit()
+    conn.close()
+    security_log(get_client_ip(), "ip_unblocked", f"IP unblocked: {ip}", "info")
+    return redirect(url_for('dashboard'))
 
-def kafka_consumer_loop() -> None:
-    """
-    Background thread that consumes threats.classified topic
-    and pushes data to the Flask dashboard database.
-    """
-    try:
-        from confluent_kafka import Consumer, KafkaError
-    except ImportError:
-        logger.error("[BRIDGE] confluent-kafka not installed — Kafka sync disabled")
-        return
 
-    consumer = Consumer({
-        "bootstrap.servers": KAFKA_BOOTSTRAP,
-        "group.id": "dashboard-bridge-group",
-        "auto.offset.reset": "latest",
+# ────────────────────────────────────────────────────────────────────────────────
+# ROUTES - API (for real-time updates)
+# ────────────────────────────────────────────────────────────────────────────────
+
+@app.route('/api/live_visitors')
+@login_required
+def live_visitors():
+    """Get real-time visitor data."""
+    conn = get_db_connection()
+    c = conn.cursor()
+    
+    # Get last 5 minutes of unique IPs
+    five_min_ago = (datetime.now() - timedelta(minutes=5)).isoformat()
+    c.execute("""
+        SELECT DISTINCT ip_address, MAX(timestamp) as last_seen, 
+               COUNT(*) as requests, threat_level
+        FROM ip_requests
+        WHERE timestamp > ?
+        GROUP BY ip_address
+        ORDER BY last_seen DESC
+        LIMIT 20
+    """, (five_min_ago,))
+    
+    visitors = [{
+        'ip': row['ip_address'],
+        'last_seen': row['last_seen'],
+        'requests': row['requests'],
+        'threat_level': row['threat_level']
+    } for row in c.fetchall()]
+    
+    conn.close()
+    return jsonify(visitors)
+
+
+@app.route('/api/threat_stats')
+@login_required
+def threat_stats():
+    """Get threat statistics."""
+    conn = get_db_connection()
+    c = conn.cursor()
+    
+    c.execute("""
+        SELECT threat_level, COUNT(*) as count
+        FROM ip_requests
+        WHERE timestamp > datetime('now', '-1 hour')
+        GROUP BY threat_level
+    """)
+    
+    stats = {row['threat_level']: row['count'] for row in c.fetchall()}
+    conn.close()
+    
+    return jsonify({
+        'normal': stats.get('normal', 0),
+        'warning': stats.get('warning', 0),
+        'suspicious': stats.get('suspicious', 0),
+        'critical': stats.get('critical', 0)
     })
-    consumer.subscribe(["threats.classified"])
-    logger.info("[BRIDGE] Kafka consumer started — listening to threats.classified")
-
-    while True:
-        msg = consumer.poll(1.0)
-        if msg is None:
-            continue
-        if msg.error():
-            if msg.error().code() != KafkaError._PARTITION_EOF:
-                logger.error(f"[BRIDGE] Kafka error: {msg.error()}")
-            continue
-
-        try:
-            threat = json.loads(msg.value().decode("utf-8"))
-            process_threat(threat)
-        except Exception as exc:
-            logger.exception(f"[BRIDGE] Error processing threat: {exc}")
 
 
-# ── Flask Sync API ─────────────────────────────────────────────────────────────
-
-bridge_app = Flask(__name__)
-
-
-@bridge_app.route("/health")
-def health() -> Any:
-    """Health check for the bridge service."""
-    return jsonify({"status": "ok", "service": "dashboard-bridge"})
-
-
-@bridge_app.route("/sync/stats")
-def sync_stats() -> Any:
-    """
-    Returns current dashboard stats — total blocked IPs and recent logs.
-    The Flask dashboard can call this to show a live summary panel.
-    """
-    try:
-        conn = get_dashboard_db()
-        blocked_count = conn.execute("SELECT COUNT(*) FROM blocked_ips").fetchone()[0]
-        recent_logs   = conn.execute(
-            "SELECT time, message FROM logs ORDER BY id DESC LIMIT 20"
-        ).fetchall()
-        conn.close()
-
-        return jsonify({
-            "blocked_ips": blocked_count,
-            "recent_logs": [
-                {"time": r["time"], "message": r["message"]}
-                for r in recent_logs
-            ],
-        })
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 500
-
-
-@bridge_app.route("/sync/inject_test")
-def inject_test() -> Any:
-    """
-    Inject a synthetic test threat into the dashboard.
-    Useful for demo — proves the pipeline works without needing a live attack.
-    """
-    test_threat = {
-        "severity": "high",
-        "source_ip": "192.168.99.99",
-        "agent_id": "network-monitor-01",
-        "mitre_ttp": "T1046",
-        "confidence": 0.91,
-        "details": {"pattern": "port_scan_demo", "distinct_ports": 75},
+@app.route('/api/download_ip_logs')
+@login_required
+def download_ip_logs():
+    """Download IP logs CSV for ML model training."""
+    if not os.path.exists(IP_LOG_FILE):
+        return jsonify({"error": "No IP logs available yet"}), 404
+    
+    with open(IP_LOG_FILE, 'r') as f:
+        csv_data = f.read()
+    
+    return csv_data, 200, {
+        'Content-Type': 'text/csv',
+        'Content-Disposition': f'attachment; filename=ip_logs_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
     }
-    process_threat(test_threat)
-    return jsonify({"status": "injected", "threat": test_threat})
 
 
-# ── Main ──────────────────────────────────────────────────────────────────────
+@app.route('/api/ip_logs_preview')
+@login_required
+def ip_logs_preview():
+    """Get preview of IP logs (last 100 entries)."""
+    if not os.path.exists(IP_LOG_FILE):
+        return jsonify({"entries": [], "total_records": 0})
+    
+    entries = []
+    try:
+        with open(IP_LOG_FILE, 'r') as f:
+            reader = csv.DictReader(f)
+            # Get all rows
+            all_rows = list(reader)
+            # Return last 100
+            entries = all_rows[-100:] if len(all_rows) > 100 else all_rows
+    except Exception as e:
+        return jsonify({"error": str(e), "entries": []}), 500
+    
+    return jsonify({
+        "entries": entries,
+        "total_records": len(entries),
+        "csv_file": IP_LOG_FILE
+    })
 
-def main() -> None:
-    """
-    Start the dashboard bridge:
-      1. Ensure SQLite tables exist
-      2. Start Kafka consumer in background thread
-      3. Start Flask sync API on port 5050
-    """
-    ensure_tables()
 
-    # Start Kafka consumer in background
-    thread = threading.Thread(target=kafka_consumer_loop, daemon=True)
-    thread.start()
-
-    logger.info(f"[BRIDGE] Sync API running on http://localhost:{BRIDGE_PORT}")
-    logger.info("[BRIDGE] Flask dashboard: http://localhost:5000")
-    logger.info("[BRIDGE] Test injection: http://localhost:5050/sync/inject_test")
-
-    bridge_app.run(host="0.0.0.0", port=BRIDGE_PORT)
-
-
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+    init_db()
+    app.run(debug=False, host='0.0.0.0', port=5000)

@@ -1,133 +1,486 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>IP Defense Dashboard</title>
-<meta http-equiv="refresh" content="15">
-<style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'Segoe UI', sans-serif; background: #0f1117; color: #e2e8f0; min-height: 100vh; }
-  header { background: #1a1d2e; padding: 16px 32px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #2d3748; }
-  header h1 { font-size: 20px; font-weight: 600; color: #63b3ed; }
-  header a { color: #a0aec0; text-decoration: none; font-size: 14px; }
-  header a:hover { color: #e2e8f0; }
-  .container { max-width: 1200px; margin: 0 auto; padding: 24px 32px; }
-  .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 28px; }
-  .stat-card { background: #1a1d2e; border: 1px solid #2d3748; border-radius: 10px; padding: 20px; }
-  .stat-card .label { font-size: 12px; color: #718096; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
-  .stat-card .value { font-size: 28px; font-weight: 600; }
-  .stat-card.danger .value { color: #fc8181; }
-  .stat-card.warning .value { color: #f6ad55; }
-  .stat-card.success .value { color: #68d391; }
-  .ai-badge { display: inline-block; background: #2d3748; color: #63b3ed; font-size: 10px; padding: 2px 8px; border-radius: 20px; margin-left: 8px; vertical-align: middle; }
-  .section { background: #1a1d2e; border: 1px solid #2d3748; border-radius: 10px; padding: 20px; margin-bottom: 20px; }
-  .section h2 { font-size: 15px; font-weight: 600; margin-bottom: 16px; color: #a0aec0; text-transform: uppercase; letter-spacing: 0.05em; }
-  .block-form { display: flex; gap: 10px; margin-bottom: 16px; }
-  .block-form input { flex: 1; background: #0f1117; border: 1px solid #2d3748; border-radius: 6px; padding: 8px 12px; color: #e2e8f0; font-size: 14px; }
-  .block-form input:focus { outline: none; border-color: #63b3ed; }
-  .btn { padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; }
-  .btn-block { background: #e53e3e; color: white; }
-  .btn-block:hover { background: #c53030; }
-  .btn-unblock { background: transparent; border: 1px solid #4a5568; color: #a0aec0; padding: 4px 10px; font-size: 12px; border-radius: 4px; }
-  .btn-unblock:hover { border-color: #718096; color: #e2e8f0; }
-  .ip-list { list-style: none; }
-  .ip-list li { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #2d3748; font-size: 14px; }
-  .ip-list li:last-child { border-bottom: none; }
-  .ip-tag { background: #742a2a; color: #fc8181; padding: 2px 10px; border-radius: 4px; font-family: monospace; font-size: 13px; }
-  .log-list { list-style: none; max-height: 320px; overflow-y: auto; }
-  .log-list li { padding: 6px 0; border-bottom: 1px solid #1e2130; font-size: 13px; color: #a0aec0; line-height: 1.5; }
-  .log-list li:last-child { border-bottom: none; }
-  .log-list li .time { color: #4a5568; margin-right: 8px; font-family: monospace; }
-  .log-ai { color: #63b3ed !important; }
-  .log-block { color: #fc8181 !important; }
-  .empty { color: #4a5568; font-size: 13px; text-align: center; padding: 16px 0; }
-  .demo-btn { background: #2b6cb0; color: white; text-decoration: none; padding: 6px 14px; border-radius: 6px; font-size: 12px; display: inline-block; margin-top: 8px; }
-  .demo-btn:hover { background: #2c5282; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IP Defense Dashboard - Real-Time Security Monitor</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #0a0e27;
+            color: #e2e8f0;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #1a1d2e 0%, #2d3748 100%);
+            padding: 20px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #4299e1;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        header h1 {
+            font-size: 22px;
+            font-weight: 700;
+            color: #63b3ed;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        header .user-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            font-size: 14px;
+        }
+        
+        header a {
+            color: #a0aec0;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            transition: all 0.3s;
+        }
+        
+        header a:hover {
+            background: #2d3748;
+            color: #e2e8f0;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px 32px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #1a1d2e 0%, #2d3748 100%);
+            border: 1px solid #4299e1;
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(66, 153, 225, 0.2);
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            color: #a0aec0;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 8px;
+        }
+        
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #63b3ed;
+        }
+        
+        .stat-card.critical .stat-value { color: #fc8181; }
+        .stat-card.warning .stat-value { color: #f6ad55; }
+        .stat-card.success .stat-value { color: #68d391; }
+        
+        .section {
+            background: linear-gradient(135deg, #1a1d2e 0%, #2d3748 100%);
+            border: 1px solid #4299e1;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+        
+        .section h2 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: #63b3ed;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            border-bottom: 2px solid #4299e1;
+            padding-bottom: 12px;
+        }
+        
+        .form-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+        
+        input, textarea {
+            flex: 1;
+            background: #0f1117;
+            border: 1px solid #2d3748;
+            border-radius: 6px;
+            padding: 10px 14px;
+            color: #e2e8f0;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #4299e1;
+            box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+        }
+        
+        .btn {
+            padding: 10px 18px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn-primary {
+            background: #4299e1;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #3182ce;
+            box-shadow: 0 4px 12px rgba(66, 153, 225, 0.3);
+        }
+        
+        .btn-danger {
+            background: #fc8181;
+            color: #1a202c;
+        }
+        
+        .btn-danger:hover {
+            background: #f56565;
+        }
+        
+        .btn-small {
+            padding: 4px 10px;
+            font-size: 12px;
+        }
+        
+        .ip-list, .log-list {
+            list-style: none;
+        }
+        
+        .ip-list li, .log-list li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border-bottom: 1px solid #2d3748;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            background: rgba(15, 17, 23, 0.5);
+            transition: all 0.3s;
+        }
+        
+        .ip-list li:hover, .log-list li:hover {
+            background: rgba(66, 153, 225, 0.1);
+        }
+        
+        .ip-tag {
+            background: #2d3748;
+            color: #4299e1;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            font-weight: 600;
+            border: 1px solid #4299e1;
+        }
+        
+        .threat-badge {
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .threat-normal { background: #68d391; color: #22543d; }
+        .threat-warning { background: #f6ad55; color: #7c2d12; }
+        .threat-suspicious { background: #fc8181; color: #742a2a; }
+        .threat-critical { background: #e53e3e; color: #fff; }
+        
+        .empty-state {
+            text-align: center;
+            padding: 32px;
+            color: #718096;
+        }
+        
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+        
+        @media (max-width: 1024px) {
+            .grid-2 { grid-template-columns: 1fr; }
+            header { flex-direction: column; gap: 16px; }
+        }
+        
+        .scroll-container {
+            max-height: 400px;
+            overflow-y: auto;
+            padding-right: 8px;
+        }
+        
+        .scroll-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .scroll-container::-webkit-scrollbar-track {
+            background: #1a1d2e;
+            border-radius: 10px;
+        }
+        
+        .scroll-container::-webkit-scrollbar-thumb {
+            background: #4299e1;
+            border-radius: 10px;
+        }
+        
+        .timestamp {
+            font-size: 12px;
+            color: #718096;
+            font-family: 'Courier New', monospace;
+            margin-right: 12px;
+        }
+        
+        .status-online {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: #68d391;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+        
+        .live-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: #68d391;
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+    </style>
 </head>
 <body>
 
 <header>
-  <h1>🛡 IP Defense Dashboard <span class="ai-badge">AI-Powered</span></h1>
-  <a href="/logout">Logout</a>
+    <h1>🛡️ IP Defense Dashboard</h1>
+    <div class="user-info">
+        <span>Logged in as: <strong>{{ username }}</strong></span>
+        <a href="/logout" class="btn btn-primary btn-small">Logout</a>
+    </div>
 </header>
 
 <div class="container">
-
-  <!-- Stats -->
-  <div class="stats-grid">
-    <div class="stat-card danger">
-      <div class="label">Blocked IPs</div>
-      <div class="value">{{ blocked_ips | length }}</div>
+    
+    <!-- Key Metrics -->
+    <div class="stats-grid">
+        <div class="stat-card success">
+            <div class="stat-label">Total Requests</div>
+            <div class="stat-value">{{ total_requests }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Unique Visitors</div>
+            <div class="stat-value">{{ unique_ips }}</div>
+        </div>
+        <div class="stat-card critical">
+            <div class="stat-label">Blocked IPs</div>
+            <div class="stat-value">{{ blocked_count }}</div>
+        </div>
+        <div class="stat-card warning">
+            <div class="stat-label">Active Threats</div>
+            <div class="stat-value" id="active-threats">0</div>
+        </div>
     </div>
-    <div class="stat-card warning">
-      <div class="label">Total Log Entries</div>
-      <div class="value">{{ logs | length }}</div>
+
+    <!-- Block IP Form -->
+    <div class="section">
+        <h2>🔒 Manually Block IP</h2>
+        <form method="POST" action="/block_ip">
+            <div class="form-group">
+                <input type="text" name="ip" placeholder="e.g. 192.168.1.100" required>
+                <input type="text" name="reason" placeholder="Reason for blocking" required>
+                <button type="submit" class="btn btn-primary">Block IP</button>
+            </div>
+        </form>
     </div>
-    <div class="stat-card success">
-      <div class="label">AI Agent Status</div>
-      <div class="value" style="font-size:16px; padding-top:6px;">
-        {% if ai_stats %}🟢 Connected{% else %}🔴 Offline{% endif %}
-      </div>
+
+    <!-- Live Visitors & Logs -->
+    <div class="grid-2">
+        <!-- Live Visitors -->
+        <div class="section">
+            <h2>👥 Live Visitors (Last 5 min) <span class="live-indicator"><span class="status-online"></span>Live</span></h2>
+            <div class="scroll-container">
+                {% if suspicious_ips %}
+                <ul class="ip-list">
+                    {% for ip in suspicious_ips %}
+                    <li>
+                        <div>
+                            <span class="ip-tag">{{ ip.ip_address }}</span>
+                            <span class="threat-badge threat-{{ ip.threat_level }}">{{ ip.threat_level }}</span>
+                        </div>
+                        <div>
+                            <small style="color: #a0aec0; margin-right: 12px;">{{ ip.request_count }} requests</small>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <div class="empty-state">No visitors in the last 5 minutes</div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Recent Security Events -->
+        <div class="section">
+            <h2>🚨 Security Events</h2>
+            <div class="scroll-container">
+                {% if logs %}
+                <ul class="log-list">
+                    {% for log in logs %}
+                    <li>
+                        <div>
+                            <span class="timestamp">{{ log.timestamp[-8:] }}</span>
+                            <span style="color: 
+                                {% if log.severity == 'critical' %}#fc8181
+                                {% elif log.severity == 'warning' %}#f6ad55
+                                {% else %}#68d391{% endif %}">
+                                {{ log.message }}
+                            </span>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <div class="empty-state">No security events logged yet</div>
+                {% endif %}
+            </div>
+        </div>
     </div>
-  </div>
 
-  <!-- Block IP -->
-  <div class="section">
-    <h2>Block IP Address</h2>
-    <form class="block-form" method="POST" action="/block_ip">
-      <input type="text" name="ip" placeholder="e.g. 192.168.1.100" required>
-      <button class="btn btn-block" type="submit">Block IP</button>
-    </form>
-    <a class="demo-btn" href="http://localhost:5050/sync/inject_test" target="_blank">
-      ⚡ Inject Test AI Alert
-    </a>
-  </div>
+    <!-- Blocked IPs -->
+    <div class="section">
+        <h2>🔐 Blocked IP Addresses ({{ blocked_ips | length }})</h2>
+        {% if blocked_ips %}
+        <div class="scroll-container">
+            <ul class="ip-list">
+                {% for ip in blocked_ips %}
+                <li>
+                    <div>
+                        <span class="ip-tag">{{ ip.ip_address }}</span>
+                        <small style="color: #a0aec0; margin-left: 12px;">{{ ip.reason }}</small>
+                    </div>
+                    <a href="/unblock/{{ ip.ip_address }}" class="btn btn-danger btn-small">Unblock</a>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% else %}
+        <div class="empty-state">No IPs currently blocked</div>
+        {% endif %}
+    </div>
 
-  <!-- Blocked IPs -->
-  <div class="section">
-    <h2>Blocked IPs ({{ blocked_ips | length }})</h2>
-    {% if blocked_ips %}
-    <ul class="ip-list">
-      {% for ip in blocked_ips %}
-      <li>
-        <span class="ip-tag">{{ ip.ip_address }}</span>
-        <a href="/unblock/{{ ip.id }}"><button class="btn btn-unblock">Unblock</button></a>
-      </li>
-      {% endfor %}
-    </ul>
-    {% else %}
-    <div class="empty">No IPs blocked yet — AI agents will auto-block detected threats</div>
-    {% endif %}
-  </div>
-
-  <!-- Activity Log -->
-  <div class="section">
-    <h2>Activity Log</h2>
-    {% if logs %}
-    <ul class="log-list">
-      {% for log in logs %}
-      <li class="{% if 'AI Agent' in log.message or 'AUTO-BLOCKED' in log.message %}log-ai{% elif 'Blocked' in log.message %}log-block{% endif %}">
-        <span class="time">{{ log.time }}</span>{{ log.message }}
-      </li>
-      {% endfor %}
-    </ul>
-    {% else %}
-    <div class="empty">No activity yet</div>
-    {% endif %}
-  </div>
+    <!-- ML Model Training Data -->
+    <div class="section">
+        <h2>📊 ML Model Training Data</h2>
+        <p style="color: #a0aec0; margin-bottom: 16px;">Download all collected IP logs for machine learning model training and analysis.</p>
+        <div style="display: flex; gap: 12px;">
+            <a href="/api/download_ip_logs" class="btn btn-primary">📥 Download IP Logs (CSV)</a>
+            <button class="btn btn-primary" onclick="loadIPLogsPreview()">👁️ Preview Logs</button>
+        </div>
+        <div id="logs-preview" style="margin-top: 16px;"></div>
+    </div>
 
 </div>
 
 <script>
-// Auto-refresh stats every 10 seconds without full page reload
-setInterval(async () => {
-  try {
-    const r = await fetch('/api/stats');
-    const d = await r.json();
-    console.log('Live stats:', d);
-  } catch(e) {}
-}, 10000);
+    // Load IP logs preview
+    function loadIPLogsPreview() {
+        const previewDiv = document.getElementById('logs-preview');
+        previewDiv.innerHTML = '<p style="color: #a0aec0;">Loading...</p>';
+        
+        fetch('/api/ip_logs_preview')
+            .then(r => r.json())
+            .then(data => {
+                if (!data.entries || data.entries.length === 0) {
+                    previewDiv.innerHTML = '<div style="color: #a0aec0;">No IP logs collected yet</div>';
+                    return;
+                }
+                
+                let html = `<div style="color: #a0aec0; margin-bottom: 12px;">📈 Total Records: <strong>${data.total_records}</strong></div>`;
+                html += '<table style="width: 100%; color: #e2e8f0; font-size: 12px; border-collapse: collapse;">';
+                html += '<thead><tr style="border-bottom: 1px solid #4299e1;">';
+                html += '<th style="text-align: left; padding: 8px;">Timestamp</th>';
+                html += '<th style="text-align: left; padding: 8px;">IP</th>';
+                html += '<th style="text-align: left; padding: 8px;">Method</th>';
+                html += '<th style="text-align: left; padding: 8px;">Endpoint</th>';
+                html += '<th style="text-align: left; padding: 8px;">Threat Level</th>';
+                html += '</tr></thead><tbody>';
+                
+                data.entries.slice(-20).reverse().forEach(entry => {
+                    html += `<tr style="border-bottom: 1px solid #2d3748;">`;
+                    html += `<td style="padding: 8px; font-size: 11px;">${entry.timestamp.substring(11, 19)}</td>`;
+                    html += `<td style="padding: 8px; font-family: monospace;">${entry.ip_address}</td>`;
+                    html += `<td style="padding: 8px;">${entry.method}</td>`;
+                    html += `<td style="padding: 8px; font-size: 11px;">${entry.endpoint}</td>`;
+                    html += `<td style="padding: 8px;"><span class="threat-badge threat-${entry.threat_level}">${entry.threat_level}</span></td>`;
+                    html += `</tr>`;
+                });
+                
+                html += '</tbody></table>';
+                previewDiv.innerHTML = html;
+            })
+            .catch(e => {
+                previewDiv.innerHTML = '<div style="color: #fc8181;">Error loading preview: ' + e + '</div>';
+            });
+    }
+    
+    // Auto-refresh threat stats every 5 seconds
+    function updateThreatStats() {
+        fetch('/api/threat_stats')
+            .then(r => r.json())
+            .then(data => {
+                const activeThreats = data.critical + data.suspicious;
+                document.getElementById('active-threats').textContent = activeThreats;
+            })
+            .catch(e => console.log('Stats fetch error:', e));
+    }
+
+    // Initial load and periodic updates
+    updateThreatStats();
+    setInterval(updateThreatStats, 5000);
+
+    // Auto-refresh page every 30 seconds
+    setTimeout(() => location.reload(), 30000);
 </script>
 
 </body>
