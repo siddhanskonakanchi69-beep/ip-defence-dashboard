@@ -5,7 +5,7 @@ from datetime import datetime
 app = Flask(__name__)
 app.secret_key = "supersecretkey"
 
-# DATABASE CONFIG
+# Database configuration
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///database.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
@@ -34,7 +34,7 @@ class Log(db.Model):
 
 
 # -------------------------
-# LOGIN PAGE
+# LOGIN
 # -------------------------
 
 @app.route("/", methods=["GET", "POST"])
@@ -51,12 +51,12 @@ def login():
 
         if user:
 
-            print("[LOGIN SUCCESS] Admin logged in")
+            print("[LOGIN SUCCESS]")
 
             session["user"] = username
 
-            new_log = Log(message="Admin login successful")
-            db.session.add(new_log)
+            log = Log(message="Admin logged in")
+            db.session.add(log)
             db.session.commit()
 
             return redirect("/dashboard")
@@ -79,7 +79,11 @@ def dashboard():
         return redirect("/")
 
     blocked_ips = BlockedIP.query.all()
-    logs = Log.query.order_by(Log.time.desc()).all()
+
+    try:
+        logs = Log.query.order_by(Log.time.desc()).all()
+    except:
+        logs = []
 
     return render_template("dashboard.html", blocked_ips=blocked_ips, logs=logs)
 
@@ -102,8 +106,8 @@ def block_ip():
 
     db.session.add(new_ip)
 
-    log_entry = Log(message=f"Blocked IP {ip}")
-    db.session.add(log_entry)
+    log = Log(message=f"Blocked IP {ip}")
+    db.session.add(log)
 
     db.session.commit()
 
@@ -124,8 +128,8 @@ def unblock(id):
 
     print(f"[SECURITY] Unblocked IP {ip.ip_address}")
 
-    log_entry = Log(message=f"Unblocked IP {ip.ip_address}")
-    db.session.add(log_entry)
+    log = Log(message=f"Unblocked IP {ip.ip_address}")
+    db.session.add(log)
 
     db.session.delete(ip)
 
@@ -149,7 +153,7 @@ def logout():
 
 
 # -------------------------
-# INITIALIZE DATABASE
+# DATABASE INITIALIZATION
 # -------------------------
 
 with app.app_context():
