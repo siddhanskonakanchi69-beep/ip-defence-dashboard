@@ -2,7 +2,8 @@
 <html>
 
 <head>
-<title>Cyber Defense Dashboard</title>
+<title>IP Defense Dashboard</title>
+<link rel="stylesheet" href="/static/style.css">
 </head>
 
 <body>
@@ -11,39 +12,45 @@
 
 <a href="/logout">Logout</a>
 
-<h3>Block IP</h3>
+<h2>Block IP</h2>
 
-<form method="POST" action="/block">
+<form method="POST" action="/block_ip">
 
-<input name="ip" placeholder="Enter IP Address">
+<input type="text" name="ip" placeholder="Enter IP Address" required>
 
 <button type="submit">Block</button>
 
 </form>
 
 
-<h3>Blocked IPs</h3>
+<h2>Blocked IPs</h2>
 
 <ul>
-{% for ip in ips %}
+
+{% for ip in blocked_ips %}
 
 <li>
-{{ip.ip}} - {{ip.status}}
-<a href="/unblock/{{ip.ip}}">Unblock</a>
+{{ ip.ip_address }} - blocked
+<a href="/unblock/{{ ip.id }}">Unblock</a>
 </li>
 
 {% endfor %}
+
 </ul>
 
 
-<h3>Logs</h3>
+<h2>Logs</h2>
 
 <ul>
+
 {% for log in logs %}
 
-<li>{{log.timestamp}} — {{log.action}}</li>
+<li>
+{{ log.time }} — {{ log.message }}
+</li>
 
 {% endfor %}
+
 </ul>
 
 </body>
