@@ -3,7 +3,7 @@ import sqlite3
 from datetime import datetime
 
 app = Flask(__name__)
-app.secret_key = "secret123"
+app.secret_key = "supersecretkey"
 
 
 def get_db():
@@ -14,16 +14,15 @@ def get_db():
 
 def init_db():
     conn = get_db()
-    c = conn.cursor()
 
-    c.execute("""
+    conn.execute("""
     CREATE TABLE IF NOT EXISTS blocked_ips(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         ip_address TEXT
     )
     """)
 
-    c.execute("""
+    conn.execute("""
     CREATE TABLE IF NOT EXISTS logs(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         time TEXT,
@@ -38,17 +37,20 @@ def init_db():
 init_db()
 
 
-@app.route("/", methods=["GET","POST"])
+@app.route("/", methods=["GET", "POST"])
 def login():
 
     if request.method == "POST":
 
-        username = request.form["username"]
-        password = request.form["password"]
+        username = request.form.get("username")
+        password = request.form.get("password")
 
+        # simple login
         if username == "admin" and password == "admin":
             session["user"] = username
             return redirect("/dashboard")
+
+        return "Invalid login"
 
     return render_template("login.html")
 
@@ -84,7 +86,7 @@ def block_ip():
     if "user" not in session:
         return redirect("/")
 
-    ip = request.form["ip"]
+    ip = request.form.get("ip")
 
     conn = get_db()
 
@@ -95,10 +97,7 @@ def block_ip():
 
     conn.execute(
         "INSERT INTO logs(time,message) VALUES(?,?)",
-        (
-            datetime.now(),
-            f"Blocked IP {ip}"
-        )
+        (datetime.now(), f"Blocked IP {ip}")
     )
 
     conn.commit()
@@ -117,14 +116,6 @@ def unblock(id):
         (id,)
     )
 
-    conn.execute(
-        "INSERT INTO logs(time,message) VALUES(?,?)",
-        (
-            datetime.now(),
-            "IP Unblocked"
-        )
-    )
-
     conn.commit()
     conn.close()
 
@@ -133,11 +124,9 @@ def unblock(id):
 
 @app.route("/logout")
 def logout():
-
     session.clear()
-
     return redirect("/")
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0",port=5000)
+    app.run(host="0.0.0.0", port=5000)
