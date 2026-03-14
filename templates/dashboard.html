@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+<title>Cyber Defense Dashboard</title>
+</head>
+
+<body>
+
+<h1>IP Defense Dashboard</h1>
+
+<a href="/logout">Logout</a>
+
+<h3>Block IP</h3>
+
+<form method="POST" action="/block">
+
+<input name="ip" placeholder="Enter IP Address">
+
+<button type="submit">Block</button>
+
+</form>
+
+
+<h3>Blocked IPs</h3>
+
+<ul>
+{% for ip in ips %}
+
+<li>
+{{ip.ip}} - {{ip.status}}
+<a href="/unblock/{{ip.ip}}">Unblock</a>
+</li>
+
+{% endfor %}
+</ul>
+
+
+<h3>Logs</h3>
+
+<ul>
+{% for log in logs %}
+
+<li>{{log.timestamp}} — {{log.action}}</li>
+
+{% endfor %}
+</ul>
+
+</body>
+</html>
